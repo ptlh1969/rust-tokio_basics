@@ -7,5 +7,5 @@ use ztokio::*;
 #[tokio::main]
 async fn main() {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-    demo14::demo().await;
+    maxmoney::demo().await.expect("Failed to execute demo successfully");;
 }

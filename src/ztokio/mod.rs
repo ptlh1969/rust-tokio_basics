@@ -12,3 +12,6 @@ pub mod demo6;
 pub mod demo7;
 pub mod demo8;
 pub mod demo9;
+pub mod peter;
+pub mod toh;
+pub mod maxmoney;
