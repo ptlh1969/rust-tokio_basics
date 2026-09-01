@@ -23,7 +23,7 @@ struct User {
     name: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct CurrencyRow {
     symbol: String,
     unit: String,
@@ -147,7 +147,25 @@ let fragment = Html::parse_fragment(&fixed_html);
     // Print the populated Rust list
     println!("{:#?}", currency_list);
 
-
+ // -------------------------------------------------------------------------
+    // EXPORT CURRENCY LIST TO JSON
+    // -------------------------------------------------------------------------
+    println!("Writing currency metrics to currencies.json...");
+    match serde_json::to_string_pretty(&currency_list) {
+        Ok(json_data) => {
+            match File::create("currencies.json") {
+                Ok(mut file) => {
+                    if let Err(e) = file.write_all(json_data.as_bytes()) {
+                        eprintln!("Failed to write to currencies.json: {}", e);
+                    } else {
+                        println!("Successfully saved live market metrics to currencies.json file!\n");
+                    }
+                }
+                Err(e) => eprintln!("Failed to create currencies.json file: {}", e),
+            }
+        }
+        Err(e) => eprintln!("Failed to serialize currency_list to JSON: {}", e),
+    }
 
    // --- END 
 
