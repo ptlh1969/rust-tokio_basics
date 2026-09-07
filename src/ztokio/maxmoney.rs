@@ -11,6 +11,7 @@ use reqwest::Client;
 use reqwest::redirect::Policy;
 use headless_chrome::{Browser, LaunchOptions};
 use scraper::{Html, Selector};
+use chrono::Local;
 
 async fn lazy_hi() {
     log::info!("Yaaaw!! 🥱");
@@ -43,6 +44,7 @@ pub async fn demo() -> Result<(), Box<dyn std::error::Error>> {
         .headless(true)
         .window_size(Some((1920, 1080)))
         .args(vec![
+            std::ffi::OsStr::new("--no-sandbox"),
             std::ffi::OsStr::new("--disable-blink-features=AutomationControlled"),
             std::ffi::OsStr::new("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"),
         ])
@@ -65,7 +67,7 @@ pub async fn demo() -> Result<(), Box<dyn std::error::Error>> {
     println!("Synchronizing with asynchronous API hydration loops...");
     let mut data_hydrated = false;
     
-    for attempt in 1..=15 {
+    for attempt in 1..=50 {
         let current_snapshot = tab.get_content()?;
         
         // Ensure standard templates aren't blankly showing placeholders or raw loaders
@@ -74,7 +76,7 @@ pub async fn demo() -> Result<(), Box<dyn std::error::Error>> {
             data_hydrated = true;
             break;
         }
-        println!("Content is still rendering, waiting 1 second... (Attempt {}/15)", attempt);
+        println!("Content is still rendering, waiting 1 second... (Attempt {}/50)", attempt);
         std::thread::sleep(Duration::from_secs(1));
     }
 
@@ -89,8 +91,7 @@ pub async fn demo() -> Result<(), Box<dyn std::error::Error>> {
     let document = Html::parse_document(&html_content.as_str());
 
     // Select <tbody id="foreign_exchange_rate_lists_table_body">
-    let selector = Selector::parse(
-        r#"tbody#foreign_exchange_rate_lists_table_body"#
+    let selector = Selector::parse(r#"tbody#foreign_exchange_rate_lists_table_body"#
     ).unwrap();
 
     if let Some(tbody) = document.select(&selector).next() {
@@ -98,15 +99,14 @@ pub async fn demo() -> Result<(), Box<dyn std::error::Error>> {
 
         // Extract the complete HTML inside <tbody>
         let tbody_html = tbody.html();
-        let mut body_file = File::create("body.html")?;
-        body_file.write_all(tbody_html.as_bytes())?;  
-        // println!("{}", tbody_html);
+        //let mut body_file = File::create("body.html")?;
+        //body_file.write_all(tbody_html.as_bytes())?;  
 
   // --- Extract ROW and Column
 // Parse the HTML document
 let fixed_html = format!("<table>{}</table>", tbody_html.as_str());
-let fragment = Html::parse_fragment(&fixed_html);
-    //let fragment = Html::parse_fragment(tbody_html.as_str());
+//let fragment = Html::parse_fragment(&fixed_html);
+    let fragment = Html::parse_fragment(fixed_html.as_str());
 
     // Define CSS selectors
     let tr_selector = Selector::parse("tr").unwrap();
@@ -147,25 +147,26 @@ let fragment = Html::parse_fragment(&fixed_html);
     // Print the populated Rust list
     println!("{:#?}", currency_list);
 
+
+
+
  // -------------------------------------------------------------------------
     // EXPORT CURRENCY LIST TO JSON
     // -------------------------------------------------------------------------
     println!("Writing currency metrics to currencies.json...");
-    match serde_json::to_string_pretty(&currency_list) {
-        Ok(json_data) => {
-            match File::create("currencies.json") {
-                Ok(mut file) => {
-                    if let Err(e) = file.write_all(json_data.as_bytes()) {
-                        eprintln!("Failed to write to currencies.json: {}", e);
-                    } else {
-                        println!("Successfully saved live market metrics to currencies.json file!\n");
-                    }
-                }
-                Err(e) => eprintln!("Failed to create currencies.json file: {}", e),
-            }
-        }
-        Err(e) => eprintln!("Failed to serialize currency_list to JSON: {}", e),
-    }
+     // 3. Get the current date formatted as yyyymmdd
+    let current_date = Local::now().format("%Y%m%d").to_string();
+    let file_name = format!("{}.json", current_date);
+
+    // 4. Serialize the list to a pretty-printed JSON string
+    let json_string = serde_json::to_string_pretty(&currency_list)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+
+    // 5. Write the JSON string to the file
+    let mut file = File::create(&file_name)?;
+    file.write_all(json_string.as_bytes())?;
+
+    println!("Successfully exported data to {}", file_name);
 
    // --- END 
 
@@ -188,8 +189,8 @@ let fragment = Html::parse_fragment(&fixed_html);
     // WRITE RESPONSE HOOK
     // -------------------------------------------------------------------------
     println!("Writing fully loaded page contents to response.html...");
-    let mut html_file = File::create("response.html")?;
-    html_file.write_all(html_content.as_bytes())?;
+    //let mut html_file = File::create("response.html")?;
+    //html_file.write_all(html_content.as_bytes())?;
 
  
     
@@ -248,9 +249,6 @@ let fragment = Html::parse_fragment(&fixed_html);
     let json_data = serde_json::to_string_pretty(&users_list)?;
     let mut file = File::create("users.json")?;
     file.write_all(json_data.as_bytes())?;
-
-
-
     
     println!("Successfully saved data to users.json file!\n");
     Ok(())
