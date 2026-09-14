@@ -1,5 +1,6 @@
 // RUN MULTIPLE FUTURES CONCURRENTLY USING JoinSet
 use std::time;
+use std::env;
 use tokio::join;
 use tokio::task::JoinSet;
 use tokio::time::{Duration, sleep};
@@ -154,49 +155,43 @@ let fixed_html = format!("<table>{}</table>", tbody_html.as_str());
     // EXPORT CURRENCY LIST TO JSON
     // -------------------------------------------------------------------------
     println!("Writing currency metrics to currencies.json...");
+    // 1. Get the path of the current executable binary
+    let mut exe_path = env::current_exe()?;
+
+    // 2. Drop the binary name to get the directory it resides in
+    exe_path.pop();
+
      // 3. Get the current date formatted as yyyymmdd
     let current_date = Local::now().format("%Y%m%d").to_string();
     let file_name = format!("{}.json", current_date);
+    let target_file_path = exe_path.join(file_name);
 
     // 4. Serialize the list to a pretty-printed JSON string
     let json_string = serde_json::to_string_pretty(&currency_list)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
 
     // 5. Write the JSON string to the file
-    let mut file = File::create(&file_name)?;
+    let mut file = File::create(&target_file_path)?;
     file.write_all(json_string.as_bytes())?;
 
-    println!("Successfully exported data to {}", file_name);
+    //println!("Successfully exported data to {}", file);
 
    // --- END 
-
-
-
-
 
     } else {
         println!("tbody not found");
     }
 
-
-
-
-
-
-
-
     // -------------------------------------------------------------------------
     // WRITE RESPONSE HOOK
     // -------------------------------------------------------------------------
-    println!("Writing fully loaded page contents to response.html...");
+    //println!("Writing fully loaded page contents to response.html...");
     //let mut html_file = File::create("response.html")?;
     //html_file.write_all(html_content.as_bytes())?;
 
- 
     
-
     println!("Successfully saved verified snapshot data to response.html file!\n");
-
+/* 
     // -------------------------------------------------------------------------
     // DATABASE REGISTRY PROCESSOR
     // -------------------------------------------------------------------------
@@ -251,5 +246,6 @@ let fixed_html = format!("<table>{}</table>", tbody_html.as_str());
     file.write_all(json_data.as_bytes())?;
     
     println!("Successfully saved data to users.json file!\n");
+    */
     Ok(())
 }
